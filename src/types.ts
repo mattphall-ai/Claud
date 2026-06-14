@@ -1,26 +1,21 @@
-export interface GroceryItem {
-  id: string;
-  name: string;
-  category: string;
+export interface Puzzle {
+  /** The seven distinct lowercase letters in the hive. */
+  letters: string[];
+  /** The required center letter (one of `letters`). */
+  center: string;
+  /** The six non-center letters. */
+  outer: string[];
+  /** Every valid answer for this puzzle, sorted alphabetically. */
+  answers: string[];
+  /** Answers that use all seven letters. */
+  pangrams: string[];
+  /** Total score achievable by finding every answer. */
+  maxScore: number;
+  /** When this puzzle was created (ms epoch), used as a stable id. */
+  createdAt: number;
 }
 
-export interface WeeklyEntry {
-  itemId: string;
-  checked: boolean;
-}
-
-export interface ChatMessage {
-  role: "user" | "assistant";
-  content: string;
-}
-
-export interface Recipe {
-  id: string;
-  name: string;
-  sourceUrl: string;
-  ingredients: string[];
-  instructions: string[];
-  image?: string;
-  addedAt: number;
-  chatHistory: ChatMessage[];
+export interface GameState {
+  puzzle: Puzzle;
+  found: string[];
 }
