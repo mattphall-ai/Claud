@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { guessCategory } from "../utils/recipeImport";
 
 interface AddItemFormProps {
   categories: string[];
@@ -12,8 +13,17 @@ export function AddItemForm({ categories, onAdd, onCancel }: AddItemFormProps) {
   const [name, setName] = useState("");
   const [category, setCategory] = useState(categories[0] ?? NEW_CATEGORY_VALUE);
   const [newCategory, setNewCategory] = useState("");
+  const [categoryTouched, setCategoryTouched] = useState(false);
 
   const isNewCategory = category === NEW_CATEGORY_VALUE;
+
+  function handleNameChange(value: string) {
+    setName(value);
+    if (!categoryTouched) {
+      const guess = guessCategory(value);
+      if (categories.includes(guess)) setCategory(guess);
+    }
+  }
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -23,6 +33,7 @@ export function AddItemForm({ categories, onAdd, onCancel }: AddItemFormProps) {
     onAdd(finalName, finalCategory);
     setName("");
     setNewCategory("");
+    setCategoryTouched(false);
   }
 
   return (
@@ -33,7 +44,7 @@ export function AddItemForm({ categories, onAdd, onCancel }: AddItemFormProps) {
         <input
           type="text"
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => handleNameChange(e.target.value)}
           placeholder="e.g. Sourdough Bread"
           autoFocus
           required
@@ -41,7 +52,13 @@ export function AddItemForm({ categories, onAdd, onCancel }: AddItemFormProps) {
       </label>
       <label className="field">
         <span>Category</span>
-        <select value={category} onChange={(e) => setCategory(e.target.value)}>
+        <select
+          value={category}
+          onChange={(e) => {
+            setCategoryTouched(true);
+            setCategory(e.target.value);
+          }}
+        >
           {categories.map((c) => (
             <option key={c} value={c}>
               {c}
@@ -50,6 +67,12 @@ export function AddItemForm({ categories, onAdd, onCancel }: AddItemFormProps) {
           <option value={NEW_CATEGORY_VALUE}>+ New category…</option>
         </select>
       </label>
+      {!isNewCategory && (
+        <p className="form-hint">
+          Category is suggested automatically based on the name — change it
+          if needed.
+        </p>
+      )}
       {isNewCategory && (
         <label className="field">
           <span>New category name</span>

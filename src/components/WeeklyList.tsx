@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import type { GroceryItem, WeeklyEntry } from "../types";
 import { ImportRecipe } from "./ImportRecipe";
+import { QuickAddItem } from "./QuickAddItem";
 
 interface WeeklyListProps {
   weeklyList: WeeklyEntry[];
@@ -51,6 +52,7 @@ export function WeeklyList({
           <p>Your list for this week is empty.</p>
           <p>Go to the Master List tab and tap items to add them here.</p>
         </div>
+        <QuickAddItem onAdd={(name) => onImportIngredients([name])} />
         <ImportRecipe onImport={onImportIngredients} />
       </div>
     );
@@ -58,6 +60,7 @@ export function WeeklyList({
 
   return (
     <div className="view">
+      <QuickAddItem onAdd={(name) => onImportIngredients([name])} />
       <ImportRecipe onImport={onImportIngredients} />
       <div className="progress-bar">
         <div className="progress-text">

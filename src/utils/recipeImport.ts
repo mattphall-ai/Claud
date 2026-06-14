@@ -69,6 +69,71 @@ export function extractIngredientsFromHtml(html: string): string[] {
   return [];
 }
 
+function decodeJsonString(escaped: string): string {
+  try {
+    return JSON.parse(`"${escaped}"`);
+  } catch {
+    return escaped;
+  }
+}
+
+export function extractDescriptionFromHtml(html: string): string {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+
+  for (const selector of [
+    'meta[property="og:description"]',
+    'meta[name="description"]',
+    'meta[name="twitter:description"]',
+  ]) {
+    const content = doc.querySelector(selector)?.getAttribute("content");
+    if (content && content.trim()) return content;
+  }
+
+  // YouTube embeds the full video description as JSON inside an inline script.
+  for (const script of doc.querySelectorAll("script")) {
+    const text = script.textContent ?? "";
+    const match = text.match(/"shortDescription":"((?:\\.|[^"\\])*)"/);
+    if (match) return decodeJsonString(match[1]);
+  }
+
+  return "";
+}
+
+const INGREDIENT_HEADER_RE = /^#*\s*ingredients?\s*:?$/i;
+const STOP_HEADER_RE =
+  /^#*\s*(instructions?|directions?|method|steps?|prep(ar(e|ation))?|notes?|nutrition|equipment)\b/i;
+const LEADING_SYMBOLS_RE = /^[^\p{L}\p{N}⅛⅜⅝⅞¼½¾⅓⅔]+/u;
+const INGREDIENT_LINE_RE = /^[\d⅛⅜⅝⅞¼½¾⅓⅔]/;
+
+export function extractIngredientLinesFromText(text: string): string[] {
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim().replace(LEADING_SYMBOLS_RE, "").trim());
+
+  for (let i = 0; i < lines.length; i++) {
+    if (!INGREDIENT_HEADER_RE.test(lines[i])) continue;
+    const found: string[] = [];
+    for (let j = i + 1; j < lines.length && found.length < 40; j++) {
+      const line = lines[j];
+      if (!line) {
+        if (found.length > 0) break;
+        continue;
+      }
+      if (STOP_HEADER_RE.test(line)) break;
+      found.push(line);
+    }
+    if (found.length > 0) return found;
+  }
+
+  return lines.filter((line) => line.length > 0 && line.length < 100 && INGREDIENT_LINE_RE.test(line));
+}
+
+export function extractIngredients(html: string): string[] {
+  const structured = extractIngredientsFromHtml(html);
+  if (structured.length > 0) return structured;
+  return extractIngredientLinesFromText(extractDescriptionFromHtml(html));
+}
+
 const LEADING_WORDS =
   "a|an|of|the|" +
   "cups?|tablespoons?|tbsps?|tbsp|teaspoons?|tsps?|tsp|" +
@@ -110,6 +175,7 @@ export function cleanIngredientName(raw: string): string {
 }
 
 const CATEGORY_KEYWORDS: [string, string[]][] = [
+  ["Frozen", ["frozen"]],
   [
     "Produce",
     [
@@ -128,7 +194,6 @@ const CATEGORY_KEYWORDS: [string, string[]][] = [
     ],
   ],
   ["Bakery", ["bread", "bun", "bagel", "tortilla", "roll", "baguette", "pita"]],
-  ["Frozen", ["frozen"]],
   ["Beverages", ["juice", "soda", "wine", "beer", "coffee", "tea", "broth", "stock"]],
   [
     "Condiments & Spices",

@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import {
   cleanIngredientName,
-  extractIngredientsFromHtml,
+  extractIngredients,
   fetchRecipeHtml,
 } from "../utils/recipeImport";
 
@@ -42,10 +42,10 @@ export function ImportRecipe({ onImport }: ImportRecipeProps) {
     setError(null);
     try {
       const html = await fetchRecipeHtml(url.trim());
-      const ingredients = extractIngredientsFromHtml(html);
+      const ingredients = extractIngredients(html);
       if (ingredients.length === 0) {
         setError(
-          "Couldn't find an ingredient list on that page. Try pasting the ingredients below instead.",
+          "Couldn't find an ingredient list on that page. For videos, this works best when the creator includes a written ingredient list in the description or caption. Try pasting the ingredients below instead.",
         );
         return;
       }
@@ -101,25 +101,25 @@ export function ImportRecipe({ onImport }: ImportRecipeProps) {
         className="btn btn-primary add-item-btn"
         onClick={() => setOpen(true)}
       >
-        + Add ingredients from a recipe
+        + Add ingredients from a recipe or video
       </button>
     );
   }
 
   return (
     <div className="add-item-form import-recipe-form">
-      <h3>Import ingredients from a recipe</h3>
+      <h3>Import ingredients from a recipe or video</h3>
 
       {!rows && (
         <>
           <form onSubmit={handleFetch}>
             <label className="field">
-              <span>Recipe URL</span>
+              <span>Recipe or video link</span>
               <input
                 type="url"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://example.com/recipe"
+                placeholder="Recipe page, or YouTube / Instagram / TikTok link"
                 inputMode="url"
               />
             </label>
