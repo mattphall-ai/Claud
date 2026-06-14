@@ -213,50 +213,13 @@ export function guessCategory(name: string): string {
   return "Pantry";
 }
 
-function singularize(s: string): string {
-  if (s.length > 3 && s.endsWith("es")) return s.slice(0, -2);
-  if (s.length > 3 && s.endsWith("s") && !s.endsWith("ss")) return s.slice(0, -1);
-  return s;
-}
-
-// True if `haystack` equals `needle`, or ends with `needle` preceded by a
-// space — i.e. `needle` is the trailing word(s) of `haystack`. This lets
-// "ripe bananas" match "bananas" and "all-purpose flour" match "flour",
-// without letting "rice noodles" match "rice" (a leading-word modifier
-// changes what the item is, a trailing one usually doesn't).
-function endsWithWord(haystack: string, needle: string): boolean {
-  if (haystack === needle) return true;
-  if (!haystack.endsWith(needle)) return false;
-  return haystack[haystack.length - needle.length - 1] === " ";
-}
-
 export function findMatchingItem(
   name: string,
   candidates: GroceryItem[],
 ): GroceryItem | null {
   const lower = name.toLowerCase().trim();
-  const lowerSingular = singularize(lower);
-  let best: GroceryItem | null = null;
-  let bestScore = 0;
-
   for (const item of candidates) {
-    const itemLower = item.name.toLowerCase().trim();
-    if (lower === itemLower) return item;
-
-    const itemSingular = singularize(itemLower);
-    if (lowerSingular === itemSingular) return item;
-
-    const matches =
-      endsWithWord(lowerSingular, itemSingular) ||
-      endsWithWord(itemSingular, lowerSingular);
-    if (!matches) continue;
-
-    const score = Math.min(itemSingular.length, lowerSingular.length);
-    if (score > bestScore && score >= 3) {
-      bestScore = score;
-      best = item;
-    }
+    if (item.name.toLowerCase().trim() === lower) return item;
   }
-
-  return best;
+  return null;
 }
