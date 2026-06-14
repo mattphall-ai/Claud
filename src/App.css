@@ -33,8 +33,8 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 12px 8px;
-  font-size: 0.95rem;
+  padding: 10px 4px;
+  font-size: 0.85rem;
   font-weight: 500;
   color: var(--color-text-muted);
   background: none;
@@ -407,4 +407,146 @@
 
 .footer-actions .btn {
   flex: 1;
+}
+
+/* Recipes */
+.recipe-row {
+  align-items: center;
+}
+
+.recipe-card-btn {
+  gap: 12px;
+}
+
+.recipe-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.recipe-detail-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.recipe-image {
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.recipe-source-link {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.recipe-instructions {
+  margin: 0;
+  padding-left: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.recipe-instructions li {
+  padding-top: 2px;
+}
+
+/* Recipe chat */
+.recipe-chat {
+  margin-top: 12px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.recipe-chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.recipe-chat-header h3 {
+  font-size: 1rem;
+}
+
+.chat-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.chat-toggle input {
+  cursor: pointer;
+}
+
+.chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.chat-message {
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  max-width: 85%;
+  white-space: pre-wrap;
+}
+
+.chat-message.user {
+  align-self: flex-end;
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+}
+
+.chat-message.assistant {
+  align-self: flex-start;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+}
+
+.chat-loading {
+  opacity: 0.6;
+}
+
+.chat-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.chat-input-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  font-size: 1rem;
+  font-family: inherit;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.mic-btn {
+  flex-shrink: 0;
+  padding: 10px 14px;
+}
+
+.mic-btn.listening {
+  background: var(--color-danger-bg);
+  border-color: var(--color-danger);
 }

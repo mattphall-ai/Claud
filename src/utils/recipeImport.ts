@@ -22,10 +22,10 @@ export async function fetchRecipeHtml(url: string): Promise<string> {
   throw new Error(`Couldn't load that page${detail}`);
 }
 
-function findRecipeIngredients(data: unknown): string[] | null {
+function findRecipeObject(data: unknown): Record<string, unknown> | null {
   if (Array.isArray(data)) {
     for (const entry of data) {
-      const found = findRecipeIngredients(entry);
+      const found = findRecipeObject(entry);
       if (found) return found;
     }
     return null;
@@ -36,35 +36,42 @@ function findRecipeIngredients(data: unknown): string[] | null {
   const type = obj["@type"];
   const isRecipe =
     type === "Recipe" || (Array.isArray(type) && type.includes("Recipe"));
-
-  if (isRecipe) {
-    const ingredients = obj.recipeIngredient ?? obj.ingredients;
-    if (Array.isArray(ingredients)) {
-      const strings = ingredients.filter(
-        (i): i is string => typeof i === "string" && i.trim().length > 0,
-      );
-      if (strings.length > 0) return strings;
-    }
-  }
+  if (isRecipe) return obj;
 
   if (Array.isArray(obj["@graph"])) {
-    return findRecipeIngredients(obj["@graph"]);
+    return findRecipeObject(obj["@graph"]);
   }
 
   return null;
 }
 
-export function extractIngredientsFromHtml(html: string): string[] {
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  const scripts = doc.querySelectorAll('script[type="application/ld+json"]');
-  for (const script of scripts) {
+function findAllRecipeObjects(doc: Document): Record<string, unknown>[] {
+  const found: Record<string, unknown>[] = [];
+  for (const script of doc.querySelectorAll('script[type="application/ld+json"]')) {
     try {
       const data = JSON.parse(script.textContent ?? "");
-      const ingredients = findRecipeIngredients(data);
-      if (ingredients) return ingredients;
+      const recipe = findRecipeObject(data);
+      if (recipe) found.push(recipe);
     } catch {
       // ignore malformed JSON-LD blocks and keep looking
     }
+  }
+  return found;
+}
+
+function recipeIngredients(recipe: Record<string, unknown>): string[] {
+  const ingredients = recipe.recipeIngredient ?? recipe.ingredients;
+  if (!Array.isArray(ingredients)) return [];
+  return ingredients.filter(
+    (i): i is string => typeof i === "string" && i.trim().length > 0,
+  );
+}
+
+export function extractIngredientsFromHtml(html: string): string[] {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  for (const recipe of findAllRecipeObjects(doc)) {
+    const ingredients = recipeIngredients(recipe);
+    if (ingredients.length > 0) return ingredients;
   }
   return [];
 }
@@ -100,6 +107,9 @@ export function extractDescriptionFromHtml(html: string): string {
 }
 
 const INGREDIENT_HEADER_RE = /^#*\s*ingredients?\s*:?$/i;
+const INSTRUCTION_HEADER_RE =
+  /^#*\s*(instructions?|directions?|method|steps?|preparation)\s*:?$/i;
+const INSTRUCTION_STOP_HEADER_RE = /^#*\s*(notes?|nutrition|equipment|tips?)\b/i;
 const STOP_HEADER_RE =
   /^#*\s*(instructions?|directions?|method|steps?|prep(ar(e|ation))?|notes?|nutrition|equipment)\b/i;
 const LEADING_SYMBOLS_RE = /^[^\p{L}\p{N}⅛⅜⅝⅞¼½¾⅓⅔]+/u;
@@ -132,6 +142,107 @@ export function extractIngredients(html: string): string[] {
   const structured = extractIngredientsFromHtml(html);
   if (structured.length > 0) return structured;
   return extractIngredientLinesFromText(extractDescriptionFromHtml(html));
+}
+
+export function extractInstructionLinesFromText(text: string): string[] {
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim().replace(LEADING_SYMBOLS_RE, "").trim());
+
+  for (let i = 0; i < lines.length; i++) {
+    if (!INSTRUCTION_HEADER_RE.test(lines[i])) continue;
+    const found: string[] = [];
+    for (let j = i + 1; j < lines.length && found.length < 40; j++) {
+      const line = lines[j];
+      if (!line) {
+        if (found.length > 0) break;
+        continue;
+      }
+      if (INSTRUCTION_STOP_HEADER_RE.test(line)) break;
+      found.push(line);
+    }
+    if (found.length > 0) return found;
+  }
+
+  return [];
+}
+
+function flattenInstructions(data: unknown): string[] {
+  if (typeof data === "string") {
+    return data
+      .split(/\r?\n+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  if (Array.isArray(data)) {
+    return data.flatMap(flattenInstructions);
+  }
+  if (typeof data === "object" && data !== null) {
+    const obj = data as Record<string, unknown>;
+    if (Array.isArray(obj.itemListElement)) return flattenInstructions(obj.itemListElement);
+    if (typeof obj.text === "string") return flattenInstructions(obj.text);
+    if (typeof obj.name === "string") return flattenInstructions(obj.name);
+  }
+  return [];
+}
+
+function flattenImage(data: unknown): string | undefined {
+  if (typeof data === "string") return data;
+  if (Array.isArray(data)) return flattenImage(data[0]);
+  if (typeof data === "object" && data !== null) {
+    const obj = data as Record<string, unknown>;
+    if (typeof obj.url === "string") return obj.url;
+  }
+  return undefined;
+}
+
+function extractPageTitle(doc: Document): string {
+  const og = doc.querySelector('meta[property="og:title"]')?.getAttribute("content");
+  if (og && og.trim()) return og.trim();
+  const title = doc.querySelector("title")?.textContent;
+  if (title && title.trim()) return title.trim();
+  return "Untitled recipe";
+}
+
+function extractPageImage(doc: Document): string | undefined {
+  const og = doc.querySelector('meta[property="og:image"]')?.getAttribute("content");
+  return og && og.trim() ? og.trim() : undefined;
+}
+
+export interface ExtractedRecipe {
+  name: string;
+  ingredients: string[];
+  instructions: string[];
+  image?: string;
+}
+
+export function extractRecipeDetails(html: string): ExtractedRecipe {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+
+  for (const recipe of findAllRecipeObjects(doc)) {
+    const ingredients = recipeIngredients(recipe);
+    const instructions = flattenInstructions(recipe.recipeInstructions);
+    if (ingredients.length > 0 || instructions.length > 0) {
+      const name =
+        typeof recipe.name === "string" && recipe.name.trim()
+          ? recipe.name.trim()
+          : extractPageTitle(doc);
+      return {
+        name,
+        ingredients,
+        instructions,
+        image: flattenImage(recipe.image) ?? extractPageImage(doc),
+      };
+    }
+  }
+
+  const description = extractDescriptionFromHtml(html);
+  return {
+    name: extractPageTitle(doc),
+    ingredients: extractIngredientLinesFromText(description),
+    instructions: extractInstructionLinesFromText(description),
+    image: extractPageImage(doc),
+  };
 }
 
 const LEADING_WORDS =
