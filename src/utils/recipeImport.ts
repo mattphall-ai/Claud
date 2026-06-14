@@ -114,6 +114,7 @@ const STOP_HEADER_RE =
   /^#*\s*(instructions?|directions?|method|steps?|prep(ar(e|ation))?|notes?|nutrition|equipment)\b/i;
 const LEADING_SYMBOLS_RE = /^[^\p{L}\p{N}⅛⅜⅝⅞¼½¾⅓⅔]+/u;
 const INGREDIENT_LINE_RE = /^[\d⅛⅜⅝⅞¼½¾⅓⅔]/;
+const LEADING_STEP_NUMBER_RE = /^(?:step\s*)?\d+\s*[.):]\s*/i;
 
 export function extractIngredientLinesFromText(text: string): string[] {
   const lines = text
@@ -159,7 +160,7 @@ export function extractInstructionLinesFromText(text: string): string[] {
         continue;
       }
       if (INSTRUCTION_STOP_HEADER_RE.test(line)) break;
-      found.push(line);
+      found.push(line.replace(LEADING_STEP_NUMBER_RE, ""));
     }
     if (found.length > 0) return found;
   }
@@ -243,6 +244,23 @@ export function extractRecipeDetails(html: string): ExtractedRecipe {
     instructions: extractInstructionLinesFromText(description),
     image: extractPageImage(doc),
   };
+}
+
+export function titleFromUrl(url: string): string {
+  try {
+    const { pathname } = new URL(url);
+    const segments = pathname.split("/").filter(Boolean);
+    const slug = segments[segments.length - 1] ?? "";
+    const cleaned = slug
+      .replace(/\.[a-z0-9]+$/i, "")
+      .replace(/^a?\d{4,}-/i, "")
+      .replace(/[-_]+/g, " ")
+      .trim();
+    if (!cleaned || /^\d+$/.test(cleaned)) return "Untitled recipe";
+    return cleaned.replace(/\b\w/g, (c) => c.toUpperCase());
+  } catch {
+    return "Untitled recipe";
+  }
 }
 
 const LEADING_WORDS =

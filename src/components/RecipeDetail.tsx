@@ -46,14 +46,16 @@ export function RecipeDetail({
       {recipe.image && <img src={recipe.image} alt="" className="recipe-image" />}
 
       <h2>{recipe.name}</h2>
-      <a
-        href={recipe.sourceUrl}
-        target="_blank"
-        rel="noreferrer"
-        className="recipe-source-link"
-      >
-        View original recipe
-      </a>
+      {recipe.sourceUrl && (
+        <a
+          href={recipe.sourceUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="recipe-source-link"
+        >
+          View original recipe
+        </a>
+      )}
 
       {recipe.ingredients.length > 0 && (
         <section className="category-section">

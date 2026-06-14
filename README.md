@@ -19,12 +19,15 @@ A simple grocery shopping app with three views:
 - **Recipes** – paste a link to a recipe page or video to save it under its
   title. The app extracts the ingredient list and step-by-step instructions
   so you can read the recipe without leaving the app, pick which ingredients
-  to add to this week's list, and view the original page anytime. Each saved
-  recipe also has a chat panel — ask questions like "I just added the butter,
-  what's next?" and get short, step-aware answers powered by Claude. Tap the
-  mic to ask by voice, and enable "Speak replies" to have answers read aloud
-  hands-free while you cook. Chat requires an Anthropic API key, which is
-  stored only in your browser and used to call the API directly.
+  to add to this week's list, and view the original page anytime. Some sites
+  block automated requests, so if a link can't be fetched you can instead
+  paste the recipe text directly (with "Ingredients" and "Instructions"
+  headings) and optionally give it a name. Each saved recipe also has a chat
+  panel — ask questions like "I just added the butter, what's next?" and get
+  short, step-aware answers powered by Claude. Tap the mic to ask by voice,
+  and enable "Speak replies" to have answers read aloud hands-free while you
+  cook. Chat requires an Anthropic API key, which is stored only in your
+  browser and used to call the API directly.
 
 All data is stored locally in the browser (`localStorage`), so it works
 offline and persists between visits.
