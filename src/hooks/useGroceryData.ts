@@ -5,6 +5,7 @@ import {
   DEFAULT_GROCERIES,
   slugify,
 } from "../data/defaultGroceries";
+import { findMatchingItem, guessCategory } from "../utils/recipeImport";
 import type { GroceryItem, WeeklyEntry } from "../types";
 
 const MASTER_LIST_KEY = "grocery-app:master-list";
@@ -97,6 +98,45 @@ export function useGroceryData() {
     setWeeklyList([]);
   }
 
+  function importIngredients(names: string[]) {
+    const cleanNames = names.map((n) => n.trim()).filter(Boolean);
+    if (cleanNames.length === 0) return;
+
+    const newItems: GroceryItem[] = [];
+    const idsToAdd: string[] = [];
+    const usedIds = new Set(masterList.map((item) => item.id));
+
+    for (const name of cleanNames) {
+      const match =
+        findMatchingItem(name, masterList) ?? findMatchingItem(name, newItems);
+      if (match) {
+        idsToAdd.push(match.id);
+        continue;
+      }
+
+      const category = guessCategory(name);
+      let id = slugify(category, name);
+      if (usedIds.has(id)) id = `${id}__${Date.now()}_${newItems.length}`;
+      usedIds.add(id);
+
+      const item: GroceryItem = { id, name, category };
+      newItems.push(item);
+      idsToAdd.push(id);
+    }
+
+    if (newItems.length > 0) {
+      setMasterList((prev) => [...prev, ...newItems]);
+    }
+
+    setWeeklyList((prev) => {
+      const existingIds = new Set(prev.map((entry) => entry.itemId));
+      const additions = [...new Set(idsToAdd)]
+        .filter((id) => !existingIds.has(id))
+        .map((id) => ({ itemId: id, checked: false }));
+      return additions.length > 0 ? [...prev, ...additions] : prev;
+    });
+  }
+
   return {
     masterList,
     weeklyList,
@@ -111,5 +151,6 @@ export function useGroceryData() {
     deleteItem,
     clearChecked,
     clearAllWeekly,
+    importIngredients,
   };
 }

@@ -55,6 +55,7 @@ function App() {
             onRemove={data.removeFromWeekly}
             onClearChecked={data.clearChecked}
             onClearAll={data.clearAllWeekly}
+            onImportIngredients={data.importIngredients}
           />
         )}
       </main>

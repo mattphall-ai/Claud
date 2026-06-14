@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import type { GroceryItem, WeeklyEntry } from "../types";
+import { ImportRecipe } from "./ImportRecipe";
 
 interface WeeklyListProps {
   weeklyList: WeeklyEntry[];
@@ -9,6 +10,7 @@ interface WeeklyListProps {
   onRemove: (itemId: string) => void;
   onClearChecked: () => void;
   onClearAll: () => void;
+  onImportIngredients: (names: string[]) => void;
 }
 
 export function WeeklyList({
@@ -19,6 +21,7 @@ export function WeeklyList({
   onRemove,
   onClearChecked,
   onClearAll,
+  onImportIngredients,
 }: WeeklyListProps) {
   const grouped = useMemo(() => {
     const map = new Map<string, WeeklyEntry[]>();
@@ -48,12 +51,14 @@ export function WeeklyList({
           <p>Your list for this week is empty.</p>
           <p>Go to the Master List tab and tap items to add them here.</p>
         </div>
+        <ImportRecipe onImport={onImportIngredients} />
       </div>
     );
   }
 
   return (
     <div className="view">
+      <ImportRecipe onImport={onImportIngredients} />
       <div className="progress-bar">
         <div className="progress-text">
           {checkedCount} of {total} purchased
