@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import type { GroceryItem } from "../types";
 import { AddItemForm } from "./AddItemForm";
 
@@ -9,6 +9,65 @@ interface MasterListProps {
   onToggleWeekly: (itemId: string) => void;
   onAddCustomItem: (name: string, category: string) => void;
   onDeleteItem: (itemId: string) => void;
+  onChangeCategory: (itemId: string, category: string) => void;
+}
+
+const NEW_CATEGORY_VALUE = "__new__";
+
+interface CategoryEditorProps {
+  categories: string[];
+  current: string;
+  onSave: (category: string) => void;
+  onCancel: () => void;
+}
+
+function CategoryEditor({ categories, current, onSave, onCancel }: CategoryEditorProps) {
+  const [category, setCategory] = useState(current);
+  const [newCategory, setNewCategory] = useState("");
+  const isNew = category === NEW_CATEGORY_VALUE;
+
+  function handleSave() {
+    const final = isNew ? newCategory.trim() : category;
+    if (!final) return;
+    onSave(final);
+  }
+
+  return (
+    <div className="category-edit">
+      <select
+        value={category}
+        onChange={(e) => setCategory(e.target.value)}
+        aria-label="New category"
+      >
+        {categories.map((c) => (
+          <option key={c} value={c}>
+            {c}
+          </option>
+        ))}
+        <option value={NEW_CATEGORY_VALUE}>+ New category…</option>
+      </select>
+      {isNew && (
+        <input
+          type="text"
+          value={newCategory}
+          onChange={(e) => setNewCategory(e.target.value)}
+          placeholder="New category name"
+          autoFocus
+        />
+      )}
+      <button type="button" className="btn btn-secondary" onClick={onCancel}>
+        Cancel
+      </button>
+      <button
+        type="button"
+        className="btn btn-primary"
+        onClick={handleSave}
+        disabled={isNew && !newCategory.trim()}
+      >
+        Save
+      </button>
+    </div>
+  );
 }
 
 export function MasterList({
@@ -18,9 +77,11 @@ export function MasterList({
   onToggleWeekly,
   onAddCustomItem,
   onDeleteItem,
+  onChangeCategory,
 }: MasterListProps) {
   const [search, setSearch] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const itemsByCategory = useMemo(() => {
     const map = new Map<string, GroceryItem[]>();
@@ -63,29 +124,55 @@ export function MasterList({
             <ul className="item-list">
               {items.map((item) => {
                 const selected = weeklyItemIds.has(item.id);
+                const editing = editingId === item.id;
                 return (
-                  <li key={item.id} className="item-row">
-                    <button
-                      type="button"
-                      className={`item-toggle ${selected ? "selected" : ""}`}
-                      onClick={() => onToggleWeekly(item.id)}
-                      aria-pressed={selected}
-                    >
-                      <span className="checkmark" aria-hidden="true">
-                        {selected ? "✓" : "+"}
-                      </span>
-                      <span className="item-name">{item.name}</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="delete-btn"
-                      onClick={() => onDeleteItem(item.id)}
-                      aria-label={`Delete ${item.name} from master list`}
-                      title="Remove from master list"
-                    >
-                      ×
-                    </button>
-                  </li>
+                  <Fragment key={item.id}>
+                    <li className="item-row">
+                      <button
+                        type="button"
+                        className={`item-toggle ${selected ? "selected" : ""}`}
+                        onClick={() => onToggleWeekly(item.id)}
+                        aria-pressed={selected}
+                      >
+                        <span className="checkmark" aria-hidden="true">
+                          {selected ? "✓" : "+"}
+                        </span>
+                        <span className="item-name">{item.name}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="edit-btn"
+                        onClick={() => setEditingId(editing ? null : item.id)}
+                        aria-label={`Change category for ${item.name}`}
+                        title="Change category"
+                        aria-pressed={editing}
+                      >
+                        🏷️
+                      </button>
+                      <button
+                        type="button"
+                        className="delete-btn"
+                        onClick={() => onDeleteItem(item.id)}
+                        aria-label={`Delete ${item.name} from master list`}
+                        title="Remove from master list"
+                      >
+                        ×
+                      </button>
+                    </li>
+                    {editing && (
+                      <li className="item-row category-edit-row">
+                        <CategoryEditor
+                          categories={categories}
+                          current={item.category}
+                          onSave={(newCategory) => {
+                            onChangeCategory(item.id, newCategory);
+                            setEditingId(null);
+                          }}
+                          onCancel={() => setEditingId(null)}
+                        />
+                      </li>
+                    )}
+                  </Fragment>
                 );
               })}
             </ul>

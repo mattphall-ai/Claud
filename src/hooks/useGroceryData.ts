@@ -90,6 +90,14 @@ export function useGroceryData() {
     setWeeklyList((prev) => prev.filter((entry) => entry.itemId !== itemId));
   }
 
+  function updateItemCategory(itemId: string, category: string) {
+    const trimmed = category.trim();
+    if (!trimmed) return;
+    setMasterList((prev) =>
+      prev.map((item) => (item.id === itemId ? { ...item, category: trimmed } : item)),
+    );
+  }
+
   function clearChecked() {
     setWeeklyList((prev) => prev.filter((entry) => !entry.checked));
   }
@@ -149,6 +157,7 @@ export function useGroceryData() {
     toggleChecked,
     addCustomItem,
     deleteItem,
+    updateItemCategory,
     clearChecked,
     clearAllWeekly,
     importIngredients,

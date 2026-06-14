@@ -6,6 +6,8 @@ A simple grocery shopping app with three views:
   Tap an item to add it to this week's list (tap again to remove it). You can
   also add your own custom items — the category is suggested automatically
   based on the name, but you can change it — or delete items you never buy.
+  Use the tag button on any item to move it to a different category at any
+  time, or create a new category on the fly.
 - **This Week's List** – the items you picked, grouped by category. Check items
   off as you shop, see your progress, and clear purchased or all items when
   you're done. You can quickly add a one-off item directly to this week's

@@ -58,6 +58,7 @@ function App() {
             onToggleWeekly={data.toggleWeekly}
             onAddCustomItem={data.addCustomItem}
             onDeleteItem={data.deleteItem}
+            onChangeCategory={data.updateItemCategory}
           />
         ) : tab === "weekly" ? (
           <WeeklyList
