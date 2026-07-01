@@ -3,23 +3,48 @@ import type { GroceryItem } from "../types";
 const CORS_PROXIES: ((url: string) => string)[] = [
   (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
   (url) => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
-  (url) => `https://thingproxy.freeboard.io/fetch/${url}`,
+  (url) => `https://cors.deno.dev/${url}`,
+  (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
 ];
 
+const PROXY_TIMEOUT_MS = 10_000;
+
+const PROXY_HEADERS: Record<string, string> = {
+  Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+  "Accept-Language": "en-US,en;q=0.9",
+};
+
 export async function fetchRecipeHtml(url: string): Promise<string> {
-  let lastError: unknown;
-  for (const proxy of CORS_PROXIES) {
-    try {
-      const res = await fetch(proxy(url));
-      if (!res.ok) throw new Error(`request failed (${res.status})`);
-      const html = await res.text();
-      if (html.trim()) return html;
-    } catch (err) {
-      lastError = err;
-    }
+  const controllers = CORS_PROXIES.map(() => new AbortController());
+  const timers = controllers.map((c) =>
+    window.setTimeout(() => c.abort(), PROXY_TIMEOUT_MS),
+  );
+
+  const attempts = CORS_PROXIES.map((proxy, i) =>
+    fetch(proxy(url), { signal: controllers[i].signal, headers: PROXY_HEADERS })
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.text();
+      })
+      .then((html) => {
+        if (!html.trim()) throw new Error("empty response");
+        return html;
+      })
+      .finally(() => window.clearTimeout(timers[i])),
+  );
+
+  // Suppress unhandled-rejection warnings from losing promises
+  attempts.forEach((p) => p.catch(() => {}));
+
+  try {
+    const html = await Promise.any(attempts);
+    controllers.forEach((c) => c.abort());
+    timers.forEach((t) => window.clearTimeout(t));
+    return html;
+  } catch {
+    timers.forEach((t) => window.clearTimeout(t));
+    throw new Error("Couldn't load that page automatically");
   }
-  const detail = lastError instanceof Error ? `: ${lastError.message}` : "";
-  throw new Error(`Couldn't load that page${detail}`);
 }
 
 function findRecipeObject(data: unknown): Record<string, unknown> | null {
